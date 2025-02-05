@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bercivarga/go-pokedex/state"
+	"io"
 	"net/http"
 	"os"
 )
@@ -36,12 +37,12 @@ var CommandMap = map[string]cliCommand{
 		Name:        "map",
 		Description: "Explore the location areas. Use multiple times to expand the list.",
 		Callback: func(state *state.AppState, _ string) error {
-			areas, err := getLocationAreas(state.AreaPage)
+			areas, err := getLocationAreas(state.GetAreaPage())
 			if err != nil {
 				return err
 			}
 
-			state.LocationAreas = append(state.LocationAreas, areas...)
+			state.LocationAreas = areas
 			state.AreaPage++
 
 			fmt.Printf("Here is page %d of the location areas:\n", state.AreaPage)
@@ -88,7 +89,7 @@ var CommandMap = map[string]cliCommand{
 }
 
 func getLocationAreas(page int) ([]string, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://pokeapi.co/api/v2/location-area/?offset=%d&limit=20", page), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://pokeapi.co/api/v2/location-area/?offset=%d&limit=20", page*20), nil)
 	if err != nil {
 		return []string{}, err
 	}
@@ -99,7 +100,12 @@ func getLocationAreas(page int) ([]string, error) {
 		return []string{}, err
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
 
 	var locationAreas []string
 
@@ -130,7 +136,12 @@ func getPokemonInLocationArea(locationArea string) ([]string, error) {
 		return []string{}, err
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
 
 	var pokemon []string
 
@@ -162,7 +173,12 @@ func getPokemonInfo(name string) (string, error) {
 		return "", err
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(resp.Body)
 
 	var result map[string]interface{}
 
